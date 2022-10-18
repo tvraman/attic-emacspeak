@@ -2,10 +2,9 @@
 #
 LABEL=1.1
 TCL_VERSION=8.6
-CFLAGS+=-O3 -fpic -pedantic -ansi -Wall -I/usr/include/tcl$(TCL_VERSION)
+TCL_INCLUDE=/usr/include/tcl$(TCL_VERSION)
 CFLAGS+= -g    -O4 -fPIC  -DPIC  -pedantic -ansi -Wall  -Wno-long-long -I$(TCL_INCLUDE)
-LIBS=-ltts -ltts_us -ltcl$(TCL_VERSION) 
-
+LIBS=-ltcl$(TCL_VERSION) -ltts -ltts_us  -ldl
 tcldtk.so: tcldtk.o
 	$(CC) $(LDFLAGS) -shared -o $@ $< $(LIBS)
 
