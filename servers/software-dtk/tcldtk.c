@@ -22,9 +22,8 @@
  */
 /* > */
 /* <headers*/
-
+#define __VXWORKS__ 0
 #include <tcl.h>
-#include <tclExtend.h>
 #include <dtk/ttsapi.h>
 
 /* > */
