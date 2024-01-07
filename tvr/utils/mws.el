@@ -1,5 +1,6 @@
 ;;; mws.el -*- lexical-binding: t -*-
 (require 'cl-lib)
+;;; Params:
 
 (defvar mws-aphorisms
   ["" " THE FIRST APHORISM "
@@ -101,6 +102,9 @@
    " THE NINETY-EIGHTH APHORISM "
    " THE NINETY-NINTH APHORISM "]
   "Aphorism markers")
+;;; Helpers:
+(declare-function emacspeak-google-tts-line "emacspeak-google" (&optional lang))
+(declare-function emacspeak-speak-extent "emacspeak-speak" (beg end &optional no-case))
 
 (defsubst mws-lesson (&optional n-pat)
   "Return lesson pattern --- n-pat is a number or number pattern."
@@ -115,6 +119,7 @@ Default is this week."
   "Speak line in Hindi"
   (interactive )
   (emacspeak-google-tts-line  "hi"))
+;;; Commands:
 
 (defun mws-this-week-lessons ()
   "Read this week's lessons"
@@ -123,7 +128,7 @@ Default is this week."
          (e (+ 7 s)))
     (emacspeak-speak-extent (mws-lesson s) (mws-lesson e) t)))
 
-(defun mws-that-week-lessons (n)
+(defun mws-week-lessons (n)
   "Read given  week's lessons specified by week number."
   (interactive "nWeek:")
   (let* ((s  (mws-week-start n))
@@ -150,9 +155,9 @@ Default is this week."
 (defun mws-random-lesson ()
   "Jump to random lesson"
   (interactive)
-    (mws-jump-lesson (random 365)))
+    (mws-lesson-jump (random 365)))
 
-(defun mws-jump-lesson (n)
+(defun mws-lesson-jump (n)
   "Jump to given lesson"
   (interactive "nLesson:")
   (emacspeak-speak-extent (mws-lesson n) (mws-lesson (1+ n)) t))
@@ -161,26 +166,25 @@ Default is this week."
   "Move to a random  aphorism"
   (interactive)
   ( mws-aphorism (random 100)))
+;;; Book Settings:
+(with-no-warnings
+  (dtk-set-rate 75)
+  (dtk-set-punctuations 'some)
+  (when dtk-split-caps (dtk-toggle-split-caps ))
+  (emacspeak-pronounce-refresh-pronunciations)
 
-(dtk-set-rate 75)
-(dtk-set-punctuations 'some)
-(when dtk-split-caps (dtk-toggle-split-caps ))
-(emacspeak-pronounce-refresh-pronunciations)
+  (let ((inhibit-read-only  t)
+        (map (make-sparse-keymap)))
+    (define-key map  "a" 'mws-aphorism)
+    (define-key map  "b" 'mws-random-aphorism)
+    (define-key map "c" 'mws-today-lesson)
+    (define-key map "W" 'mws-week-lessons)
+    (define-key map "w" 'mws-this-week-lessons)
+    (define-key map  "n" 'emacspeak-outline-speak-next-heading)
+    (define-key map  "p" 'emacspeak-outline-speak-previous-heading)
+    (define-key map  "/" 'emacspeak-wizards-espeak-line)
+    (define-key map  "g" 'mws-hindi)
 
-(let ((inhibit-read-only  t)
-      (map (make-sparse-keymap)))
-  (define-key map  "a" 'mws-aphorism)
-  (define-key map  "b" 'mws-random-aphorism)
-  (define-key map "c" 'mws-today-lesson)
-  (define-key map "W" 'mws-that-week-lessons)
-  (define-key map "w" 'mws-this-week-lessons)
-  (define-key map  "n" 'emacspeak-outline-speak-next-heading)
-  (define-key map  "p" 'emacspeak-outline-speak-previous-heading)
-  (define-key map  "/" 'emacspeak-wizards-espeak-line)
-  (define-key map  "g" 'mws-hindi)
-
-  (define-key map "r" 'mws-random-lesson)
-  (define-key map "l" 'mws-jump-lesson)
-  (put-text-property (point-min)  (point-max) 'keymap map))
-
-;; emacspeak-speak-extent
+    (define-key map "r" 'mws-random-lesson)
+    (define-key map "l" 'mws-lesson-jump)
+    (put-text-property (point-min)  (point-max) 'keymap map)))
