@@ -1,3 +1,4 @@
+;;; mws.el -*- lexical-binding: t -*-
 (require 'cl-lib)
 
 (defvar mws-aphorisms
@@ -101,11 +102,11 @@
    " THE NINETY-NINTH APHORISM "]
   "Aphorism markers")
 
-(defsubst mws-lesson-pattern (&optional n-pat)
+(defsubst mws-lesson (&optional n-pat)
   "Return lesson pattern --- n-pat is a number or number pattern."
   (format "^ *LESSON +%s *$" (or n-pat "[0-9]+")))
 
-(defun mws-start-of-this-week (&optional w)
+(defsubst mws-week-start (&optional w)
   "Return day number of start of  week `w'
 Default is this week."
   (1+ (* 7 (1- (or w (read (format-time-string "%W")))))))
@@ -118,90 +119,48 @@ Default is this week."
 (defun mws-this-week-lessons ()
   "Read this week's lessons"
   (interactive)
-  (let* ((case-fold-search nil)
-         (w-start (mws-start-of-this-week))
-         (w-end (+ 7 w-start))
-         (start nil))
-    (goto-char (point-min))
-    (re-search-forward (mws-lesson-pattern w-start))
-    (setq start (line-beginning-position))
-    (save-excursion
-      (re-search-forward (mws-lesson-pattern w-end))
-      (emacspeak-speak-region start (line-beginning-position)))))
+  (let* ((s (mws-week-start))
+         (e (+ 7 s)))
+    (emacspeak-speak-extent (mws-lesson s) (mws-lesson e) t)))
 
 (defun mws-that-week-lessons (n)
   "Read given  week's lessons specified by week number."
   (interactive "nWeek:")
-  (let* ((case-fold-search nil)
-         (w-start  (mws-start-of-this-week n))
-         (w-end (+ 7 w-start))
-         (start nil))
-    (goto-char (point-min))
-    (re-search-forward (mws-lesson-pattern  w-start))
-    (setq start (line-beginning-position))
-    (save-excursion
-      (re-search-forward (mws-lesson-pattern w-end))
-      (emacspeak-speak-region start (line-beginning-position)))))
+  (let* ((s  (mws-week-start n))
+         (e (+ 7 s)))
+    (emacspeak-speak-extent (mws-lesson  s) (mws-lesson e) t)))
 
 (defun mws-today-lesson ()
   "Today's lesson"
   (interactive)
-  (let ((case-fold-search t)
-        (start nil)
-        (end nil))
-    (goto-char (point-min))
-    (re-search-forward (mws-lesson-pattern (read (format-time-string "%j"))))
-    (setq start (line-beginning-position))
-    (save-excursion
-      (goto-char (line-end-position))
-      (re-search-forward (mws-lesson-pattern))
-      (setq end (line-beginning-position))
-      (emacspeak-speak-region start end))))
+  (let ((d (read (format-time-string "%j"))))
+    (emacspeak-speak-extent  (mws-lesson d ) (mws-lesson (1+  d)) t)))
 
-(defun mws-today-aphorism (&optional d)
+(defun mws-aphorism (&optional d)
   "Move to today's aphorism"
   (interactive
    (list
     (if current-prefix-arg
-        (read-number "Day:")
+        (read-number "Aphorism:")
       (read (format-time-string "%j")))))
   (cl-declare (special mws-aphorisms))
-  (goto-char (point-min))
   (setq d (1+ (% (1- d) 99)))
-  (dtk-notify-say "%d" d)
-  (search-forward (aref mws-aphorisms d))
-  (save-excursion
-    (goto-char (line-beginning-position))
-    (call-interactively #'emacspeak-eww-next-h)))
+  (emacspeak-speak-extent (aref mws-aphorisms d) (aref mws-aphorisms (1+ d))))
 
 (defun mws-random-lesson ()
   "Jump to random lesson"
   (interactive)
-  (let ((start nil)
-        (end nil))
-    (goto-char (point-min))
-    (re-search-forward (mws-lesson-pattern (random 365)))
-    (setq start  (line-beginning-position))
-    (save-excursion
-      (re-search-forward (mws-lesson-pattern))
-      (setq end (line-beginning-position))
-      (emacspeak-speak-region start end))))
+    (mws-jump-lesson (random 365)))
 
 (defun mws-jump-lesson (n)
   "Jump to given lesson"
   (interactive "nLesson:")
-  (goto-char (point-min))
-  (re-search-forward (mws-lesson-pattern n))
-  (let ((start (line-beginning-position)))
-    (save-excursion
-      (re-search-forward (mws-lesson-pattern))
-      (forward-line -1)
-      (emacspeak-speak-region start (point)))))
+  (emacspeak-speak-extent (mws-lesson n) (mws-lesson (1+ n)) t))
 
 (defun mws-random-aphorism ()
   "Move to a random  aphorism"
   (interactive)
-  (funcall-interactively #'mws-today-aphorism (random 100)))
+  ( mws-aphorism (random 100)))
 
 (dtk-set-rate 75)
 (dtk-set-punctuations 'some)
@@ -210,7 +169,7 @@ Default is this week."
 
 (let ((inhibit-read-only  t)
       (map (make-sparse-keymap)))
-  (define-key map  "a" 'mws-today-aphorism)
+  (define-key map  "a" 'mws-aphorism)
   (define-key map  "b" 'mws-random-aphorism)
   (define-key map "c" 'mws-today-lesson)
   (define-key map "W" 'mws-that-week-lessons)
@@ -219,8 +178,9 @@ Default is this week."
   (define-key map  "p" 'emacspeak-outline-speak-previous-heading)
   (define-key map  "/" 'emacspeak-wizards-espeak-line)
   (define-key map  "g" 'mws-hindi)
-  
+
   (define-key map "r" 'mws-random-lesson)
   (define-key map "l" 'mws-jump-lesson)
   (put-text-property (point-min)  (point-max) 'keymap map))
-(setq emacspeak-pronounce-personality nil)
+
+;; emacspeak-speak-extent
